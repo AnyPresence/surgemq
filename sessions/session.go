@@ -26,6 +26,13 @@ const (
 	defaultQueueSize = 16
 )
 
+type SessionTopics interface {
+	init(msg *message.ConnectMessage) error
+	AddTopic(topic string, qos byte) error
+	RemoveTopic(topic string) error
+	Topics() ([]string, []byte, error)
+}
+
 type Session struct {
 	// Ack queue for outgoing PUBLISH QoS 1 messages
 	Pub1ack *Ackqueue
@@ -60,9 +67,6 @@ type Session struct {
 	// rbuf is the retained PUBLISH message buffer
 	rbuf []byte
 
-	// topics stores all the topis for this session/client
-	topics map[string]byte
-
 	// Initialized?
 	initted bool
 
@@ -70,6 +74,8 @@ type Session struct {
 	mu sync.Mutex
 
 	id string
+
+	SessionTopics
 }
 
 func (this *Session) Init(msg *message.ConnectMessage) error {
@@ -99,8 +105,6 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 		this.Will.SetRetain(this.Cmsg.WillRetain())
 	}
 
-	this.topics = make(map[string]byte, 1)
-
 	this.id = string(msg.ClientId())
 
 	this.Pub1ack = newAckqueue(defaultQueueSize)
@@ -112,7 +116,11 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 
 	this.initted = true
 
-	return nil
+	if this.SessionTopics == nil {
+		this.SessionTopics = &memSessionTopics{}
+	}
+
+	return this.init(msg)
 }
 
 func (this *Session) Update(msg *message.ConnectMessage) error {
@@ -149,53 +157,6 @@ func (this *Session) RetainMessage(msg *message.PublishMessage) error {
 	}
 
 	return nil
-}
-
-func (this *Session) AddTopic(topic string, qos byte) error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return fmt.Errorf("Session not yet initialized")
-	}
-
-	this.topics[topic] = qos
-
-	return nil
-}
-
-func (this *Session) RemoveTopic(topic string) error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return fmt.Errorf("Session not yet initialized")
-	}
-
-	delete(this.topics, topic)
-
-	return nil
-}
-
-func (this *Session) Topics() ([]string, []byte, error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return nil, nil, fmt.Errorf("Session not yet initialized")
-	}
-
-	var (
-		topics []string
-		qoss   []byte
-	)
-
-	for k, v := range this.topics {
-		topics = append(topics, k)
-		qoss = append(qoss, v)
-	}
-
-	return topics, qoss, nil
 }
 
 func (this *Session) ID() string {

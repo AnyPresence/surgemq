@@ -20,10 +20,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/AnyPresence/surgemq/sessions"
+	"github.com/AnyPresence/surgemq/topics"
 	"github.com/surge/glog"
 	"github.com/surgemq/message"
-	"github.com/surgemq/surgemq/sessions"
-	"github.com/surgemq/surgemq/topics"
 )
 
 type (
