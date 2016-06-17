@@ -24,7 +24,7 @@ import (
 var _ SessionsProvider = (*memProvider)(nil)
 
 func init() {
-	Register("mem", NewMemProvider())
+	Register("mem", NewMemProvider)
 }
 
 type memSessionTopics struct {
@@ -100,13 +100,15 @@ func (this *memSessionTopics) Topics() ([]string, []byte, error) {
 }
 
 type memProvider struct {
-	st map[string]*Session
-	mu sync.RWMutex
+	st      map[string]*Session
+	context fmt.Stringer
+	mu      sync.RWMutex
 }
 
-func NewMemProvider() *memProvider {
+func NewMemProvider(context fmt.Stringer) SessionsProvider {
 	return &memProvider{
-		st: make(map[string]*Session),
+		st:      make(map[string]*Session),
+		context: context,
 	}
 }
 

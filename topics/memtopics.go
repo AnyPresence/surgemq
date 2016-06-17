@@ -39,10 +39,12 @@ type memTopics struct {
 	rmu sync.RWMutex
 	// Retained messages topic tree
 	rroot *rnode
+
+	context fmt.Stringer
 }
 
 func init() {
-	Register("mem", NewMemProvider())
+	Register("mem", NewMemProvider)
 }
 
 var _ TopicsProvider = (*memTopics)(nil)
@@ -51,10 +53,11 @@ var _ TopicsProvider = (*memTopics)(nil)
 // TopicsProvider interface. memProvider is a hidden struct that stores the topic
 // subscriptions and retained messages in memory. The content is not persistend so
 // when the server goes, everything will be gone. Use with care.
-func NewMemProvider() *memTopics {
+func NewMemProvider(context fmt.Stringer) TopicsProvider {
 	return &memTopics{
-		sroot: newSNode(),
-		rroot: newRNode(),
+		sroot:   newSNode(),
+		rroot:   newRNode(),
+		context: context,
 	}
 }
 

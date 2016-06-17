@@ -85,10 +85,10 @@ type Server struct {
 	authMgr *auth.Manager
 
 	// sessMgr is the sessions manager for keeping track of the sessions
-	sessMgr *sessions.Manager
+	sessMgr map[string]*sessions.Manager
 
 	// topicsMgr is the topics manager for keeping track of subscriptions
-	topicsMgr *topics.Manager
+	topicsMgr map[string]*topics.Manager
 
 	// The quit channel for the server. If the server detects that this channel
 	// is closed, then it's a signal for it to shutdown as well.
@@ -111,6 +111,14 @@ type Server struct {
 
 	subs []interface{}
 	qoss []byte
+}
+
+type ServerContext struct {
+	context string
+}
+
+func (c *ServerContext) String() string {
+	return c.context
 }
 
 // ListenAndServe listents to connections on the URI requested, and handles any
@@ -180,18 +188,32 @@ func (this *Server) ListenAndServe(uri string) error {
 // immediately after the message is sent to the outgoing buffer. For QOS 1 messages,
 // onComplete is called when PUBACK is received. For QOS 2 messages, onComplete is
 // called after the PUBCOMP message is received.
-func (this *Server) Publish(msg *message.PublishMessage, onComplete OnCompleteFunc) error {
+func (this *Server) Publish(username string, msg *message.PublishMessage, onComplete OnCompleteFunc) error {
 	if err := this.checkConfiguration(); err != nil {
 		return err
 	}
 
+	if username == "" {
+		username = "default"
+	}
+
+	topicsMgr, ok := this.topicsMgr[username]
+	if !ok {
+		var err error
+		topicsMgr, err = topics.NewManager(this.TopicsProvider, &ServerContext{username})
+		if err != nil {
+			return err
+		}
+		this.topicsMgr[username] = topicsMgr
+	}
+
 	if msg.Retain() {
-		if err := this.topicsMgr.Retain(msg); err != nil {
+		if err := topicsMgr.Retain(msg); err != nil {
 			glog.Errorf("Error retaining message: %v", err)
 		}
 	}
 
-	if err := this.topicsMgr.Subscribers(msg.Topic(), msg.QoS(), &this.subs, &this.qoss); err != nil {
+	if err := topicsMgr.Subscribers(msg.Topic(), msg.QoS(), &this.subs, &this.qoss); err != nil {
 		return err
 	}
 
@@ -228,12 +250,12 @@ func (this *Server) Close() error {
 		svc.stop()
 	}
 
-	if this.sessMgr != nil {
-		this.sessMgr.Close()
+	for _, sessMgr := range this.sessMgr {
+		sessMgr.Close()
 	}
 
-	if this.topicsMgr != nil {
-		this.topicsMgr.Close()
+	for _, topicsMgr := range this.topicsMgr {
+		topicsMgr.Close()
 	}
 
 	return nil
@@ -290,7 +312,10 @@ func (this *Server) handleConnection(c io.Closer) (svc *service, err error) {
 	}
 
 	// Authenticate the user, if error, return error and exit
-	if err = this.authMgr.Authenticate(string(req.Username()), string(req.Password())); err != nil {
+	username := string(req.Username())
+
+	context, err := this.authMgr.Authenticate(string(username), string(req.Password()))
+	if err != nil {
 		resp.SetReturnCode(message.ErrBadUsernameOrPassword)
 		resp.SetSessionPresent(false)
 		writeMessage(conn, resp)
@@ -299,6 +324,24 @@ func (this *Server) handleConnection(c io.Closer) (svc *service, err error) {
 
 	if req.KeepAlive() == 0 {
 		req.SetKeepAlive(minKeepAlive)
+	}
+
+	sessMgr, ok := this.sessMgr[context.String()]
+	if !ok {
+		sessMgr, err = sessions.NewManager(this.SessionsProvider, context)
+		if err != nil {
+			return nil, err
+		}
+		this.sessMgr[context.String()] = sessMgr
+	}
+
+	topicsMgr, ok := this.topicsMgr[context.String()]
+	if !ok {
+		topicsMgr, err = topics.NewManager(this.TopicsProvider, context)
+		if err != nil {
+			return nil, err
+		}
+		this.topicsMgr[context.String()] = topicsMgr
 	}
 
 	svc = &service{
@@ -311,11 +354,11 @@ func (this *Server) handleConnection(c io.Closer) (svc *service, err error) {
 		timeoutRetries: this.TimeoutRetries,
 
 		conn:      conn,
-		sessMgr:   this.sessMgr,
-		topicsMgr: this.topicsMgr,
+		sessMgr:   sessMgr,
+		topicsMgr: topicsMgr,
 	}
 
-	err = this.getSession(svc, req, resp)
+	err = this.getSession(context, svc, req, resp)
 	if err != nil {
 		return nil, err
 	}
@@ -375,17 +418,12 @@ func (this *Server) checkConfiguration() error {
 		if this.SessionsProvider == "" {
 			this.SessionsProvider = "mem"
 		}
-
-		this.sessMgr, err = sessions.NewManager(this.SessionsProvider)
-		if err != nil {
-			return
-		}
+		this.sessMgr = make(map[string]*sessions.Manager)
 
 		if this.TopicsProvider == "" {
 			this.TopicsProvider = "mem"
 		}
-
-		this.topicsMgr, err = topics.NewManager(this.TopicsProvider)
+		this.topicsMgr = make(map[string]*topics.Manager)
 
 		return
 	})
@@ -393,7 +431,7 @@ func (this *Server) checkConfiguration() error {
 	return err
 }
 
-func (this *Server) getSession(svc *service, req *message.ConnectMessage, resp *message.ConnackMessage) error {
+func (this *Server) getSession(context fmt.Stringer, svc *service, req *message.ConnectMessage, resp *message.ConnackMessage) error {
 	// If CleanSession is set to 0, the server MUST resume communications with the
 	// client based on state from the current session, as identified by the client
 	// identifier. If there is no session associated with the client identifier the
@@ -418,7 +456,7 @@ func (this *Server) getSession(svc *service, req *message.ConnectMessage, resp *
 	// If CleanSession is NOT set, check the session store for existing session.
 	// If found, return it.
 	if !req.CleanSession() {
-		if svc.sess, err = this.sessMgr.Get(cid); err == nil {
+		if svc.sess, err = this.sessMgr[context.String()].Get(cid); err == nil {
 			resp.SetSessionPresent(true)
 
 			if err := svc.sess.Update(req); err != nil {
@@ -429,7 +467,7 @@ func (this *Server) getSession(svc *service, req *message.ConnectMessage, resp *
 
 	// If CleanSession, or no existing session found, then create a new one
 	if svc.sess == nil {
-		if svc.sess, err = this.sessMgr.New(cid); err != nil {
+		if svc.sess, err = this.sessMgr[context.String()].New(cid); err != nil {
 			return err
 		}
 

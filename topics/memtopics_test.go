@@ -524,12 +524,20 @@ func TestRNodeMatch(t *testing.T) {
 	require.Equal(t, 3, len(msglist))
 }
 
+type Context struct {
+	context string
+}
+
+func (c *Context) String() string {
+	return c.context
+}
+
 func TestMemTopicsSubscription(t *testing.T) {
 	Unregister("mem")
-	p := NewMemProvider()
+	p := NewMemProvider
 	Register("mem", p)
 
-	mgr, err := NewManager("mem")
+	mgr, err := NewManager("mem", &Context{"default"})
 
 	MaxQosAllowed = 1
 	qos, err := mgr.Subscribe([]byte("sports/tennis/+/stats"), 2, "sub1")
@@ -562,10 +570,10 @@ func TestMemTopicsSubscription(t *testing.T) {
 
 func TestMemTopicsRetained(t *testing.T) {
 	Unregister("mem")
-	p := NewMemProvider()
+	p := NewMemProvider
 	Register("mem", p)
 
-	mgr, err := NewManager("mem")
+	mgr, err := NewManager("mem", &Context{"default"})
 	require.NoError(t, err)
 	require.NotNil(t, mgr)
 

@@ -14,6 +14,8 @@
 
 package auth
 
+import "fmt"
+
 type mockAuthenticator bool
 
 var _ Authenticator = (*mockAuthenticator)(nil)
@@ -23,15 +25,23 @@ var (
 	mockFailureAuthenticator mockAuthenticator = false
 )
 
+type mockContext struct {
+	context string
+}
+
+func (c *mockContext) String() string {
+	return c.context
+}
+
 func init() {
 	Register("mockSuccess", mockSuccessAuthenticator)
 	Register("mockFailure", mockFailureAuthenticator)
 }
 
-func (this mockAuthenticator) Authenticate(id string, cred interface{}) error {
+func (this mockAuthenticator) Authenticate(id string, cred interface{}) (fmt.Stringer, error) {
 	if this == true {
-		return nil
+		return &mockContext{"default"}, nil
 	}
 
-	return ErrAuthFailure
+	return &mockContext{"default"}, ErrAuthFailure
 }

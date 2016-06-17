@@ -54,7 +54,7 @@ var (
 	// It probably hasn't been registered yet.
 	ErrAuthProviderNotFound = errors.New("auth: Authentication provider not found")
 
-	providers = make(map[string]TopicsProvider)
+	providers = make(map[string]Constructor)
 )
 
 // TopicsProvider
@@ -67,7 +67,9 @@ type TopicsProvider interface {
 	Close() error
 }
 
-func Register(name string, provider TopicsProvider) {
+type Constructor func(context fmt.Stringer) TopicsProvider
+
+func Register(name string, provider Constructor) {
 	if provider == nil {
 		panic("topics: Register provide is nil")
 	}
@@ -87,13 +89,13 @@ type Manager struct {
 	p TopicsProvider
 }
 
-func NewManager(providerName string) (*Manager, error) {
+func NewManager(providerName string, context fmt.Stringer) (*Manager, error) {
 	p, ok := providers[providerName]
 	if !ok {
 		return nil, fmt.Errorf("session: unknown provider %q", providerName)
 	}
 
-	return &Manager{p: p}, nil
+	return &Manager{p: p(context)}, nil
 }
 
 func (this *Manager) Subscribe(topic []byte, qos byte, subscriber interface{}) (byte, error) {

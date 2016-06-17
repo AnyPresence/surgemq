@@ -159,6 +159,14 @@ func TestServiceSubUnsub(t *testing.T) {
 	})
 }
 
+type Context struct {
+	context string
+}
+
+func (c *Context) String() string {
+	return c.context
+}
+
 func TestServiceSubRetain(t *testing.T) {
 	runClientServerTests(t, func(c *Client) {
 		rmsg := message.NewPublishMessage()
@@ -167,7 +175,7 @@ func TestServiceSubRetain(t *testing.T) {
 		rmsg.SetTopic([]byte("abc"))
 		rmsg.SetPayload([]byte("this is a test"))
 
-		tmgr, _ := topics.NewManager("mem")
+		tmgr, _ := topics.NewManager("mem", &Context{"default"})
 		err := tmgr.Retain(rmsg)
 		require.NoError(t, err)
 

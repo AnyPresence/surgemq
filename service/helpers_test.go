@@ -73,11 +73,11 @@ func startServiceN(t testing.TB, u *url.URL, wg *sync.WaitGroup, ready1, ready2 
 	defer wg.Done()
 
 	topics.Unregister("mem")
-	tp := topics.NewMemProvider()
+	tp := topics.NewMemProvider
 	topics.Register("mem", tp)
 
 	sessions.Unregister("mem")
-	sp := sessions.NewMemProvider()
+	sp := sessions.NewMemProvider
 	sessions.Register("mem", sp)
 
 	ln, err := net.Listen(u.Scheme, u.Host)

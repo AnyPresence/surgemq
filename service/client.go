@@ -52,6 +52,14 @@ type Client struct {
 	svc *service
 }
 
+type ClientContext struct {
+	context string
+}
+
+func (c *ClientContext) String() string {
+	return c.context
+}
+
 // Connect is for MQTT clients to open a connection to a remote server. It needs to
 // know the URI, e.g., "tcp://127.0.0.1:1883", so it knows where to connect to. It also
 // needs to be supplied with the MQTT CONNECT message.
@@ -112,15 +120,20 @@ func (this *Client) Connect(uri string, msg *message.ConnectMessage) (err error)
 		timeoutRetries: this.TimeoutRetries,
 	}
 
+	username := string(msg.Username())
+	if username == "" {
+		username = "default"
+	}
+
 	err = this.getSession(this.svc, msg, resp)
 	if err != nil {
 		return err
 	}
 
-	p := topics.NewMemProvider()
+	p := topics.NewMemProvider
 	topics.Register(this.svc.sess.ID(), p)
 
-	this.svc.topicsMgr, err = topics.NewManager(this.svc.sess.ID())
+	this.svc.topicsMgr, err = topics.NewManager(this.svc.sess.ID(), &ClientContext{username})
 	if err != nil {
 		return err
 	}
