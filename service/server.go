@@ -447,7 +447,9 @@ func (this *Server) getSession(context fmt.Stringer, svc *service, req *message.
 	// Check to see if the client supplied an ID, if not, generate one and set
 	// clean session.
 	if len(req.ClientId()) == 0 {
-		req.SetClientId([]byte(fmt.Sprintf("internalclient%d", svc.id)))
+		req.SetClientId([]byte(fmt.Sprintf("internalclient%v-%v",
+			svc.conn.(net.Conn).LocalAddr(),
+			time.Now().UnixNano())))
 		req.SetCleanSession(true)
 	}
 
