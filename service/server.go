@@ -188,23 +188,23 @@ func (this *Server) ListenAndServe(uri string) error {
 // immediately after the message is sent to the outgoing buffer. For QOS 1 messages,
 // onComplete is called when PUBACK is received. For QOS 2 messages, onComplete is
 // called after the PUBCOMP message is received.
-func (this *Server) Publish(username string, msg *message.PublishMessage, onComplete OnCompleteFunc) error {
+func (this *Server) Publish(context fmt.Stringer, msg *message.PublishMessage, onComplete OnCompleteFunc) error {
 	if err := this.checkConfiguration(); err != nil {
 		return err
 	}
 
-	if username == "" {
-		username = "default"
+	if context == nil {
+		context = &ServerContext{"default"}
 	}
 
-	topicsMgr, ok := this.topicsMgr[username]
+	topicsMgr, ok := this.topicsMgr[context.String()]
 	if !ok {
 		var err error
-		topicsMgr, err = topics.NewManager(this.TopicsProvider, &ServerContext{username})
+		topicsMgr, err = topics.NewManager(this.TopicsProvider, context)
 		if err != nil {
 			return err
 		}
-		this.topicsMgr[username] = topicsMgr
+		this.topicsMgr[context.String()] = topicsMgr
 	}
 
 	if msg.Retain() {
