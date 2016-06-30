@@ -344,14 +344,23 @@ func (this *Server) handleConnection(c io.Closer) (svc *service, err error) {
 		this.topicsMgr[context.String()] = topicsMgr
 	}
 
+	connectTimeout := this.ConnectTimeout
+	ackTimeout := this.AckTimeout
+	timeoutRetries := this.TimeoutRetries
+	if settings, ok := context.(Settings); ok {
+		connectTimeout = settings.GetConnectTimeout()
+		ackTimeout = settings.GetAckTimeout()
+		timeoutRetries = settings.GetTimeoutRetries()
+	}
+
 	svc = &service{
 		id:     atomic.AddUint64(&gsvcid, 1),
 		client: false,
 
 		keepAlive:      int(req.KeepAlive()),
-		connectTimeout: this.ConnectTimeout,
-		ackTimeout:     this.AckTimeout,
-		timeoutRetries: this.TimeoutRetries,
+		connectTimeout: connectTimeout,
+		ackTimeout:     ackTimeout,
+		timeoutRetries: timeoutRetries,
 
 		conn:      conn,
 		sessMgr:   sessMgr,

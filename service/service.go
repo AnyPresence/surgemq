@@ -123,6 +123,12 @@ type service struct {
 	rmsgs []*message.PublishMessage
 }
 
+type Settings interface {
+	GetConnectTimeout() int
+	GetAckTimeout() int
+	GetTimeoutRetries() int
+}
+
 func (this *service) start() error {
 	var err error
 
