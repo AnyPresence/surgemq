@@ -27,7 +27,7 @@ const (
 )
 
 type SessionTopics interface {
-	init(msg *message.ConnectMessage) error
+	InitTopics(msg *message.ConnectMessage) error
 	AddTopic(topic string, qos byte) error
 	RemoveTopic(topic string) error
 	Topics() ([]string, []byte, error)
@@ -73,7 +73,7 @@ type Session struct {
 	// Serialize access to this session
 	mu sync.Mutex
 
-	id string
+	Id string
 
 	SessionTopics
 }
@@ -105,7 +105,7 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 		this.Will.SetRetain(this.Cmsg.WillRetain())
 	}
 
-	this.id = string(msg.ClientId())
+	this.Id = string(msg.ClientId())
 
 	this.Pub1ack = newAckqueue(defaultQueueSize)
 	this.Pub2in = newAckqueue(defaultQueueSize)
@@ -120,7 +120,7 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 		this.SessionTopics = &memSessionTopics{}
 	}
 
-	return this.init(msg)
+	return this.InitTopics(msg)
 }
 
 func (this *Session) Update(msg *message.ConnectMessage) error {

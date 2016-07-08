@@ -38,7 +38,7 @@ type memSessionTopics struct {
 	mu sync.Mutex
 }
 
-func (this *memSessionTopics) init(msg *message.ConnectMessage) error {
+func (this *memSessionTopics) InitTopics(msg *message.ConnectMessage) error {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
@@ -116,7 +116,7 @@ func (this *memProvider) New(id string) (*Session, error) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	this.st[id] = &Session{id: id, SessionTopics: &memSessionTopics{}}
+	this.st[id] = &Session{Id: id, SessionTopics: &memSessionTopics{}}
 	return this.st[id], nil
 }
 
