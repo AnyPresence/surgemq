@@ -20,9 +20,9 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/sessions"
 	"github.com/surge/glog"
-	"github.com/surgemq/message"
 )
 
 var (

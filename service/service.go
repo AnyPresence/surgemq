@@ -20,10 +20,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/sessions"
 	"github.com/AnyPresence/surgemq/topics"
 	"github.com/surge/glog"
-	"github.com/surgemq/message"
 )
 
 type (
@@ -252,8 +252,12 @@ func (this *service) stop() {
 	}
 
 	// Remove the session from session store if it's suppose to be clean session
-	if this.sess.Cmsg.CleanSession() && this.sessMgr != nil {
-		this.sessMgr.Del(this.sess.ID())
+	if this.sessMgr != nil {
+		if this.sess.Cmsg.CleanSession() {
+			this.sessMgr.Del(this.sess.ID())
+		} else {
+			this.sessMgr.Save(this.sess.ID(), this.sess)
+		}
 	}
 
 	this.conn = nil

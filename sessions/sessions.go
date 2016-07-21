@@ -33,7 +33,7 @@ type SessionsProvider interface {
 	New(id string) (*Session, error)
 	Get(id string) (*Session, error)
 	Del(id string)
-	Save(id string) error
+	Save(id string, session *Session) error
 	Count() int
 	Close() error
 }
@@ -87,8 +87,8 @@ func (this *Manager) Del(id string) {
 	this.p.Del(id)
 }
 
-func (this *Manager) Save(id string) error {
-	return this.p.Save(id)
+func (this *Manager) Save(id string, session *Session) error {
+	return this.p.Save(id, session)
 }
 
 func (this *Manager) Count() int {

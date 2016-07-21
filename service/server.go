@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"github.com/AnyPresence/surgemq/auth"
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/sessions"
 	"github.com/AnyPresence/surgemq/topics"
 	"github.com/surge/glog"
-	"github.com/surgemq/message"
 )
 
 var (

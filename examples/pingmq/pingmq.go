@@ -68,10 +68,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/service"
 	"github.com/spf13/cobra"
 	"github.com/surge/netx"
-	"github.com/surgemq/message"
 )
 
 type strlist []string

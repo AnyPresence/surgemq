@@ -21,9 +21,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/sessions"
 	"github.com/AnyPresence/surgemq/topics"
-	"github.com/surgemq/message"
 )
 
 const (

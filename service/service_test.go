@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/topics"
 	"github.com/stretchr/testify/require"
 	"github.com/surge/glog"
-	"github.com/surgemq/message"
 )
 
 var authenticator string = "mockSuccess"

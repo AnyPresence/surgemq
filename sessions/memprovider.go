@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/surgemq/message"
+	"github.com/AnyPresence/surgemq/message"
 )
 
 var _ SessionsProvider = (*memProvider)(nil)
@@ -138,7 +138,7 @@ func (this *memProvider) Del(id string) {
 	delete(this.st, id)
 }
 
-func (this *memProvider) Save(id string) error {
+func (this *memProvider) Save(id string, session *Session) error {
 	return nil
 }
 

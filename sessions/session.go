@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/surgemq/message"
+	"github.com/AnyPresence/surgemq/message"
 )
 
 const (
@@ -53,7 +53,7 @@ type Session struct {
 	Pingack *Ackqueue
 
 	// cmsg is the CONNECT message
-	Cmsg *message.ConnectMessage
+	Cmsg *message.ConnectMessage `json:"-"`
 
 	// Will message to publish if connect is closed unexpectedly
 	Will *message.PublishMessage
@@ -75,7 +75,7 @@ type Session struct {
 
 	Id string
 
-	SessionTopics
+	SessionTopics `json:"-"`
 }
 
 func (this *Session) Init(msg *message.ConnectMessage) error {
