@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AnyPresence/surgemq/log"
 	"github.com/AnyPresence/surgemq/message"
 	"github.com/AnyPresence/surgemq/topics"
 	"github.com/stretchr/testify/require"
-	"github.com/surge/glog"
 )
 
 var authenticator string = "mockSuccess"
@@ -226,7 +226,7 @@ func TestServiceSub0Pub0(t *testing.T) {
 				count++
 
 				if count == 10 {
-					glog.Debugf("got 10 pub0")
+					log.Debugf("got 10 pub0")
 					close(done2)
 				}
 
@@ -277,7 +277,7 @@ func TestServiceSub1Pub0(t *testing.T) {
 				count++
 
 				if count == 10 {
-					glog.Debugf("got 10 pub0")
+					log.Debugf("got 10 pub0")
 					close(done2)
 				}
 

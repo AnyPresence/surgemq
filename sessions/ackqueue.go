@@ -157,9 +157,9 @@ func (this *Ackqueue) Ack(msg message.Message) error {
 			if err != nil {
 				return err
 			}
-			//glog.Debugf("Acked: %v", msg)
+			//log.Debugf("Acked: %v", msg)
 			//} else {
-			//glog.Debugf("Cannot ack %s message with packet ID %d", msg.Type(), msg.PacketId())
+			//log.Debugf("Cannot ack %s message with packet ID %d", msg.Type(), msg.PacketId())
 		}
 
 	case message.PINGRESP:
