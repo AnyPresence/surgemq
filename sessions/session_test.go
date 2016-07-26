@@ -17,8 +17,8 @@ package sessions
 import (
 	"testing"
 
+	"github.com/AnyPresence/surgemq/message"
 	"github.com/stretchr/testify/require"
-	"github.com/surgemq/message"
 )
 
 func TestSessionInit(t *testing.T) {
@@ -41,7 +41,7 @@ func TestSessionInit(t *testing.T) {
 	require.Equal(t, cmsg.WillQos(), sess.Will.QoS())
 
 	sess.AddTopic("test", 1)
-	require.Equal(t, 1, len(sess.topics))
+	require.Equal(t, 1, len(sess.SessionTopics.(*memSessionTopics).topics))
 
 	topics, qoss, err := sess.Topics()
 	require.NoError(t, err)
@@ -51,7 +51,7 @@ func TestSessionInit(t *testing.T) {
 	require.Equal(t, 1, int(qoss[0]))
 
 	sess.RemoveTopic("test")
-	require.Equal(t, 0, len(sess.topics))
+	require.Equal(t, 0, len(sess.SessionTopics.(*memSessionTopics).topics))
 }
 
 func TestSessionPublishAckqueue(t *testing.T) {

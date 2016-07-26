@@ -18,13 +18,20 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/surgemq/message"
+	"github.com/AnyPresence/surgemq/message"
 )
 
 const (
 	// Queue size for the ack queue
 	defaultQueueSize = 16
 )
+
+type SessionTopics interface {
+	InitTopics(msg *message.ConnectMessage) error
+	AddTopic(topic string, qos byte) error
+	RemoveTopic(topic string) error
+	Topics() ([]string, []byte, error)
+}
 
 type Session struct {
 	// Ack queue for outgoing PUBLISH QoS 1 messages
@@ -46,7 +53,7 @@ type Session struct {
 	Pingack *Ackqueue
 
 	// cmsg is the CONNECT message
-	Cmsg *message.ConnectMessage
+	Cmsg *message.ConnectMessage `json:"-"`
 
 	// Will message to publish if connect is closed unexpectedly
 	Will *message.PublishMessage
@@ -60,16 +67,15 @@ type Session struct {
 	// rbuf is the retained PUBLISH message buffer
 	rbuf []byte
 
-	// topics stores all the topis for this session/client
-	topics map[string]byte
-
 	// Initialized?
 	initted bool
 
 	// Serialize access to this session
 	mu sync.Mutex
 
-	id string
+	Id string
+
+	SessionTopics `json:"-"`
 }
 
 func (this *Session) Init(msg *message.ConnectMessage) error {
@@ -99,9 +105,7 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 		this.Will.SetRetain(this.Cmsg.WillRetain())
 	}
 
-	this.topics = make(map[string]byte, 1)
-
-	this.id = string(msg.ClientId())
+	this.Id = string(msg.ClientId())
 
 	this.Pub1ack = newAckqueue(defaultQueueSize)
 	this.Pub2in = newAckqueue(defaultQueueSize)
@@ -112,7 +116,11 @@ func (this *Session) Init(msg *message.ConnectMessage) error {
 
 	this.initted = true
 
-	return nil
+	if this.SessionTopics == nil {
+		this.SessionTopics = &memSessionTopics{}
+	}
+
+	return this.InitTopics(msg)
 }
 
 func (this *Session) Update(msg *message.ConnectMessage) error {
@@ -149,53 +157,6 @@ func (this *Session) RetainMessage(msg *message.PublishMessage) error {
 	}
 
 	return nil
-}
-
-func (this *Session) AddTopic(topic string, qos byte) error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return fmt.Errorf("Session not yet initialized")
-	}
-
-	this.topics[topic] = qos
-
-	return nil
-}
-
-func (this *Session) RemoveTopic(topic string) error {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return fmt.Errorf("Session not yet initialized")
-	}
-
-	delete(this.topics, topic)
-
-	return nil
-}
-
-func (this *Session) Topics() ([]string, []byte, error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-
-	if !this.initted {
-		return nil, nil, fmt.Errorf("Session not yet initialized")
-	}
-
-	var (
-		topics []string
-		qoss   []byte
-	)
-
-	for k, v := range this.topics {
-		topics = append(topics, k)
-		qoss = append(qoss, v)
-	}
-
-	return topics, qoss, nil
 }
 
 func (this *Session) ID() string {

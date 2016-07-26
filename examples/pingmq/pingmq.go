@@ -68,10 +68,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/AnyPresence/surgemq/message"
+	"github.com/AnyPresence/surgemq/service"
 	"github.com/spf13/cobra"
 	"github.com/surge/netx"
-	"github.com/surgemq/message"
-	"github.com/surgemq/surgemq/service"
 )
 
 type strlist []string
@@ -96,7 +96,7 @@ var (
 	pingmqCmd = &cobra.Command{
 		Use:   "pingmq",
 		Short: "Pingmq is a program designed to demonstrate the SurgeMQ usage.",
-		Long: `Pingmq demonstrates the use of SurgeMQ by pinging a list of hosts, 
+		Long: `Pingmq demonstrates the use of SurgeMQ by pinging a list of hosts,
 publishing the result to any clients subscribed to two topics:
 /ping/success/{ip} and /ping/failure/{ip}.`,
 	}
@@ -188,7 +188,7 @@ func pinger() {
 			pubmsg.SetPayload(b)
 
 			// Publishes to the server
-			s.Publish(pubmsg, nil)
+			s.Publish(nil, pubmsg, nil, "")
 		}
 
 		p.Stop()

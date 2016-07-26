@@ -26,22 +26,24 @@ var (
 	ErrSessionsProviderNotFound = errors.New("Session: Session provider not found")
 	ErrKeyNotAvailable          = errors.New("Session: not item found for key.")
 
-	providers = make(map[string]SessionsProvider)
+	providers = make(map[string]Constructor)
 )
 
 type SessionsProvider interface {
 	New(id string) (*Session, error)
 	Get(id string) (*Session, error)
 	Del(id string)
-	Save(id string) error
+	Save(id string, session *Session) error
 	Count() int
 	Close() error
 }
 
+type Constructor func(context fmt.Stringer) SessionsProvider
+
 // Register makes a session provider available by the provided name.
 // If a Register is called twice with the same name or if the driver is nil,
 // it panics.
-func Register(name string, provider SessionsProvider) {
+func Register(name string, provider Constructor) {
 	if provider == nil {
 		panic("session: Register provide is nil")
 	}
@@ -61,13 +63,13 @@ type Manager struct {
 	p SessionsProvider
 }
 
-func NewManager(providerName string) (*Manager, error) {
+func NewManager(providerName string, context fmt.Stringer) (*Manager, error) {
 	p, ok := providers[providerName]
 	if !ok {
 		return nil, fmt.Errorf("session: unknown provider %q", providerName)
 	}
 
-	return &Manager{p: p}, nil
+	return &Manager{p: p(context)}, nil
 }
 
 func (this *Manager) New(id string) (*Session, error) {
@@ -85,8 +87,8 @@ func (this *Manager) Del(id string) {
 	this.p.Del(id)
 }
 
-func (this *Manager) Save(id string) error {
-	return this.p.Save(id)
+func (this *Manager) Save(id string, session *Session) error {
+	return this.p.Save(id, session)
 }
 
 func (this *Manager) Count() int {

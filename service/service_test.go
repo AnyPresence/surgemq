@@ -22,10 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AnyPresence/surgemq/log"
+	"github.com/AnyPresence/surgemq/message"
+	"github.com/AnyPresence/surgemq/topics"
 	"github.com/stretchr/testify/require"
-	"github.com/surge/glog"
-	"github.com/surgemq/message"
-	"github.com/surgemq/surgemq/topics"
 )
 
 var authenticator string = "mockSuccess"
@@ -159,6 +159,14 @@ func TestServiceSubUnsub(t *testing.T) {
 	})
 }
 
+type Context struct {
+	context string
+}
+
+func (c *Context) String() string {
+	return c.context
+}
+
 func TestServiceSubRetain(t *testing.T) {
 	runClientServerTests(t, func(c *Client) {
 		rmsg := message.NewPublishMessage()
@@ -167,7 +175,7 @@ func TestServiceSubRetain(t *testing.T) {
 		rmsg.SetTopic([]byte("abc"))
 		rmsg.SetPayload([]byte("this is a test"))
 
-		tmgr, _ := topics.NewManager("mem")
+		tmgr, _ := topics.NewManager("mem", &Context{"default"})
 		err := tmgr.Retain(rmsg)
 		require.NoError(t, err)
 
@@ -218,7 +226,7 @@ func TestServiceSub0Pub0(t *testing.T) {
 				count++
 
 				if count == 10 {
-					glog.Debugf("got 10 pub0")
+					log.Debugf("got 10 pub0")
 					close(done2)
 				}
 
@@ -269,7 +277,7 @@ func TestServiceSub1Pub0(t *testing.T) {
 				count++
 
 				if count == 10 {
-					glog.Debugf("got 10 pub0")
+					log.Debugf("got 10 pub0")
 					close(done2)
 				}
 

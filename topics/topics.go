@@ -26,7 +26,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/surgemq/message"
+	"github.com/AnyPresence/surgemq/message"
 )
 
 const (
@@ -54,20 +54,22 @@ var (
 	// It probably hasn't been registered yet.
 	ErrAuthProviderNotFound = errors.New("auth: Authentication provider not found")
 
-	providers = make(map[string]TopicsProvider)
+	providers = make(map[string]Constructor)
 )
 
 // TopicsProvider
 type TopicsProvider interface {
-	Subscribe(topic []byte, qos byte, subscriber interface{}) (byte, error)
+	Subscribe(topic []byte, qos byte, subscriber interface{}, id string) (byte, error)
 	Unsubscribe(topic []byte, subscriber interface{}) error
-	Subscribers(topic []byte, qos byte, subs *[]interface{}, qoss *[]byte) error
+	Subscribers(topic []byte, qos byte, id string, subs *[]interface{}, qoss *[]byte) error
 	Retain(msg *message.PublishMessage) error
 	Retained(topic []byte, msgs *[]*message.PublishMessage) error
 	Close() error
 }
 
-func Register(name string, provider TopicsProvider) {
+type Constructor func(context fmt.Stringer) TopicsProvider
+
+func Register(name string, provider Constructor) {
 	if provider == nil {
 		panic("topics: Register provide is nil")
 	}
@@ -87,25 +89,25 @@ type Manager struct {
 	p TopicsProvider
 }
 
-func NewManager(providerName string) (*Manager, error) {
+func NewManager(providerName string, context fmt.Stringer) (*Manager, error) {
 	p, ok := providers[providerName]
 	if !ok {
 		return nil, fmt.Errorf("session: unknown provider %q", providerName)
 	}
 
-	return &Manager{p: p}, nil
+	return &Manager{p: p(context)}, nil
 }
 
-func (this *Manager) Subscribe(topic []byte, qos byte, subscriber interface{}) (byte, error) {
-	return this.p.Subscribe(topic, qos, subscriber)
+func (this *Manager) Subscribe(topic []byte, qos byte, subscriber interface{}, id string) (byte, error) {
+	return this.p.Subscribe(topic, qos, subscriber, id)
 }
 
 func (this *Manager) Unsubscribe(topic []byte, subscriber interface{}) error {
 	return this.p.Unsubscribe(topic, subscriber)
 }
 
-func (this *Manager) Subscribers(topic []byte, qos byte, subs *[]interface{}, qoss *[]byte) error {
-	return this.p.Subscribers(topic, qos, subs, qoss)
+func (this *Manager) Subscribers(topic []byte, qos byte, id string, subs *[]interface{}, qoss *[]byte) error {
+	return this.p.Subscribers(topic, qos, id, subs, qoss)
 }
 
 func (this *Manager) Retain(msg *message.PublishMessage) error {

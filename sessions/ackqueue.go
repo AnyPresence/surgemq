@@ -20,7 +20,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/surgemq/message"
+	"github.com/AnyPresence/surgemq/message"
 )
 
 var (
@@ -48,7 +48,7 @@ type ackmsg struct {
 	Ackbuf []byte
 
 	// When ack cycle completes, call this function
-	OnComplete interface{}
+	OnComplete interface{} `json:"-"`
 }
 
 // Ackqueue is a growing queue implemented based on a ring buffer. As the buffer
@@ -68,17 +68,17 @@ type ackmsg struct {
 //   10. Server sends PUBREL message to client, waits for PUBCOMP.
 //   11. Client sends PINGREQ message to server, waits for PINGRESP.
 type Ackqueue struct {
-	size  int64
-	mask  int64
-	count int64
-	head  int64
-	tail  int64
+	Size  int64
+	Mask  int64
+	Count int64
+	Head  int64
+	Tail  int64
 
-	ping ackmsg
-	ring []ackmsg
-	emap map[uint16]int64
+	Ping ackmsg
+	Ring []ackmsg
+	Emap map[string]int64
 
-	ackdone []ackmsg
+	Ackdone []ackmsg
 
 	mu sync.Mutex
 }
@@ -90,14 +90,14 @@ func newAckqueue(n int) *Ackqueue {
 	}
 
 	return &Ackqueue{
-		size:    m,
-		mask:    m - 1,
-		count:   0,
-		head:    0,
-		tail:    0,
-		ring:    make([]ackmsg, m),
-		emap:    make(map[uint16]int64, m),
-		ackdone: make([]ackmsg, 0),
+		Size:    m,
+		Mask:    m - 1,
+		Count:   0,
+		Head:    0,
+		Tail:    0,
+		Ring:    make([]ackmsg, m),
+		Emap:    make(map[string]int64, m),
+		Ackdone: make([]ackmsg, 0),
 	}
 }
 
@@ -123,7 +123,7 @@ func (this *Ackqueue) Wait(msg message.Message, onComplete interface{}) error {
 		this.insert(msg.PacketId(), msg, onComplete)
 
 	case *message.PingreqMessage:
-		this.ping = ackmsg{
+		this.Ping = ackmsg{
 			Mtype:      message.PINGREQ,
 			State:      message.RESERVED,
 			OnComplete: onComplete,
@@ -144,27 +144,27 @@ func (this *Ackqueue) Ack(msg message.Message) error {
 	switch msg.Type() {
 	case message.PUBACK, message.PUBREC, message.PUBREL, message.PUBCOMP, message.SUBACK, message.UNSUBACK:
 		// Check to see if the message w/ the same packet ID is in the queue
-		i, ok := this.emap[msg.PacketId()]
+		i, ok := this.Emap[fmt.Sprint(msg.PacketId())]
 		if ok {
 			// If message w/ the packet ID exists, update the message state and copy
 			// the ack message
-			this.ring[i].State = msg.Type()
+			this.Ring[i].State = msg.Type()
 
 			ml := msg.Len()
-			this.ring[i].Ackbuf = make([]byte, ml)
+			this.Ring[i].Ackbuf = make([]byte, ml)
 
-			_, err := msg.Encode(this.ring[i].Ackbuf)
+			_, err := msg.Encode(this.Ring[i].Ackbuf)
 			if err != nil {
 				return err
 			}
-			//glog.Debugf("Acked: %v", msg)
+			//log.Debugf("Acked: %v", msg)
 			//} else {
-			//glog.Debugf("Cannot ack %s message with packet ID %d", msg.Type(), msg.PacketId())
+			//log.Debugf("Cannot ack %s message with packet ID %d", msg.Type(), msg.PacketId())
 		}
 
 	case message.PINGRESP:
-		if this.ping.Mtype == message.PINGREQ {
-			this.ping.State = message.PINGRESP
+		if this.Ping.Mtype == message.PINGREQ {
+			this.Ping.State = message.PINGRESP
 		}
 
 	default:
@@ -179,18 +179,18 @@ func (this *Ackqueue) Acked() []ackmsg {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	this.ackdone = this.ackdone[0:0]
+	this.Ackdone = this.Ackdone[0:0]
 
-	if this.ping.State == message.PINGRESP {
-		this.ackdone = append(this.ackdone, this.ping)
-		this.ping = ackmsg{}
+	if this.Ping.State == message.PINGRESP {
+		this.Ackdone = append(this.Ackdone, this.Ping)
+		this.Ping = ackmsg{}
 	}
 
 FORNOTEMPTY:
 	for !this.empty() {
-		switch this.ring[this.head].State {
+		switch this.Ring[this.Head].State {
 		case message.PUBACK, message.PUBREL, message.PUBCOMP, message.SUBACK, message.UNSUBACK:
-			this.ackdone = append(this.ackdone, this.ring[this.head])
+			this.Ackdone = append(this.Ackdone, this.Ring[this.Head])
 			this.removeHead()
 
 		default:
@@ -198,7 +198,7 @@ FORNOTEMPTY:
 		}
 	}
 
-	return this.ackdone
+	return this.Ackdone
 }
 
 func (this *Ackqueue) insert(pktid uint16, msg message.Message, onComplete interface{}) error {
@@ -206,7 +206,7 @@ func (this *Ackqueue) insert(pktid uint16, msg message.Message, onComplete inter
 		this.grow()
 	}
 
-	if _, ok := this.emap[pktid]; !ok {
+	if _, ok := this.Emap[fmt.Sprint(pktid)]; !ok {
 		// message length
 		ml := msg.Len()
 
@@ -223,10 +223,10 @@ func (this *Ackqueue) insert(pktid uint16, msg message.Message, onComplete inter
 			return err
 		}
 
-		this.ring[this.tail] = am
-		this.emap[pktid] = this.tail
-		this.tail = this.increment(this.tail)
-		this.count++
+		this.Ring[this.Tail] = am
+		this.Emap[fmt.Sprint(pktid)] = this.Tail
+		this.Tail = this.increment(this.Tail)
+		this.Count++
 	} else {
 		// If packet w/ pktid already exist, then this must be a PUBLISH message
 		// Other message types should never send with the same packet ID
@@ -252,63 +252,63 @@ func (this *Ackqueue) removeHead() error {
 		return errQueueEmpty
 	}
 
-	it := this.ring[this.head]
+	it := this.Ring[this.Head]
 	// set this to empty ackmsg{} to ensure GC will collect the buffer
-	this.ring[this.head] = ackmsg{}
-	this.head = this.increment(this.head)
-	this.count--
-	delete(this.emap, it.Pktid)
+	this.Ring[this.Head] = ackmsg{}
+	this.Head = this.increment(this.Head)
+	this.Count--
+	delete(this.Emap, fmt.Sprint(it.Pktid))
 
 	return nil
 }
 
 func (this *Ackqueue) grow() {
-	if math.MaxInt64/2 < this.size {
+	if math.MaxInt64/2 < this.Size {
 		panic("new size will overflow int64")
 	}
 
-	newsize := this.size << 1
+	newsize := this.Size << 1
 	newmask := newsize - 1
 	newring := make([]ackmsg, newsize)
 
-	if this.tail > this.head {
-		copy(newring, this.ring[this.head:this.tail])
+	if this.Tail > this.Head {
+		copy(newring, this.Ring[this.Head:this.Tail])
 	} else {
-		copy(newring, this.ring[this.head:])
-		copy(newring[this.size-this.head:], this.ring[:this.tail])
+		copy(newring, this.Ring[this.Head:])
+		copy(newring[this.Size-this.Head:], this.Ring[:this.Tail])
 	}
 
-	this.size = newsize
-	this.mask = newmask
-	this.ring = newring
-	this.head = 0
-	this.tail = this.count
+	this.Size = newsize
+	this.Mask = newmask
+	this.Ring = newring
+	this.Head = 0
+	this.Tail = this.Count
 
-	this.emap = make(map[uint16]int64, this.size)
+	this.Emap = make(map[string]int64, this.Size)
 
-	for i := int64(0); i < this.tail; i++ {
-		this.emap[this.ring[i].Pktid] = i
+	for i := int64(0); i < this.Tail; i++ {
+		this.Emap[fmt.Sprint(this.Ring[i].Pktid)] = i
 	}
 }
 
 func (this *Ackqueue) len() int {
-	return int(this.count)
+	return int(this.Count)
 }
 
 func (this *Ackqueue) cap() int {
-	return int(this.size)
+	return int(this.Size)
 }
 
 func (this *Ackqueue) index(n int64) int64 {
-	return n & this.mask
+	return n & this.Mask
 }
 
 func (this *Ackqueue) full() bool {
-	return this.count == this.size
+	return this.Count == this.Size
 }
 
 func (this *Ackqueue) empty() bool {
-	return this.count == 0
+	return this.Count == 0
 }
 
 func (this *Ackqueue) increment(n int64) int64 {

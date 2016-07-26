@@ -21,9 +21,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/surgemq/message"
-	"github.com/surgemq/surgemq/sessions"
-	"github.com/surgemq/surgemq/topics"
+	"github.com/AnyPresence/surgemq/message"
+	"github.com/AnyPresence/surgemq/sessions"
+	"github.com/AnyPresence/surgemq/topics"
 )
 
 const (
@@ -50,6 +50,14 @@ type Client struct {
 	TimeoutRetries int
 
 	svc *service
+}
+
+type ClientContext struct {
+	context string
+}
+
+func (c *ClientContext) String() string {
+	return c.context
 }
 
 // Connect is for MQTT clients to open a connection to a remote server. It needs to
@@ -112,15 +120,20 @@ func (this *Client) Connect(uri string, msg *message.ConnectMessage) (err error)
 		timeoutRetries: this.TimeoutRetries,
 	}
 
+	username := string(msg.Username())
+	if username == "" {
+		username = "default"
+	}
+
 	err = this.getSession(this.svc, msg, resp)
 	if err != nil {
 		return err
 	}
 
-	p := topics.NewMemProvider()
+	p := topics.NewMemProvider
 	topics.Register(this.svc.sess.ID(), p)
 
-	this.svc.topicsMgr, err = topics.NewManager(this.svc.sess.ID())
+	this.svc.topicsMgr, err = topics.NewManager(this.svc.sess.ID(), &ClientContext{username})
 	if err != nil {
 		return err
 	}

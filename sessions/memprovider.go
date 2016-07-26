@@ -17,22 +17,98 @@ package sessions
 import (
 	"fmt"
 	"sync"
+
+	"github.com/AnyPresence/surgemq/message"
 )
 
 var _ SessionsProvider = (*memProvider)(nil)
 
 func init() {
-	Register("mem", NewMemProvider())
+	Register("mem", NewMemProvider)
+}
+
+type memSessionTopics struct {
+	// topics stores all the topis for this session/client
+	topics map[string]byte
+
+	// Initialized?
+	initted bool
+
+	// Serialize access to this session
+	mu sync.Mutex
+}
+
+func (this *memSessionTopics) InitTopics(msg *message.ConnectMessage) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if this.initted {
+		return fmt.Errorf("SessionTopics already initialized")
+	}
+
+	this.topics = make(map[string]byte, 1)
+	this.initted = true
+
+	return nil
+}
+
+func (this *memSessionTopics) AddTopic(topic string, qos byte) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if !this.initted {
+		return fmt.Errorf("Session not yet initialized")
+	}
+
+	this.topics[topic] = qos
+
+	return nil
+}
+
+func (this *memSessionTopics) RemoveTopic(topic string) error {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if !this.initted {
+		return fmt.Errorf("Session not yet initialized")
+	}
+
+	delete(this.topics, topic)
+
+	return nil
+}
+
+func (this *memSessionTopics) Topics() ([]string, []byte, error) {
+	this.mu.Lock()
+	defer this.mu.Unlock()
+
+	if !this.initted {
+		return nil, nil, fmt.Errorf("Session not yet initialized")
+	}
+
+	var (
+		topics []string
+		qoss   []byte
+	)
+
+	for k, v := range this.topics {
+		topics = append(topics, k)
+		qoss = append(qoss, v)
+	}
+
+	return topics, qoss, nil
 }
 
 type memProvider struct {
-	st map[string]*Session
-	mu sync.RWMutex
+	st      map[string]*Session
+	context fmt.Stringer
+	mu      sync.RWMutex
 }
 
-func NewMemProvider() *memProvider {
+func NewMemProvider(context fmt.Stringer) SessionsProvider {
 	return &memProvider{
-		st: make(map[string]*Session),
+		st:      make(map[string]*Session),
+		context: context,
 	}
 }
 
@@ -40,7 +116,7 @@ func (this *memProvider) New(id string) (*Session, error) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	this.st[id] = &Session{id: id}
+	this.st[id] = &Session{Id: id, SessionTopics: &memSessionTopics{}}
 	return this.st[id], nil
 }
 
@@ -62,7 +138,7 @@ func (this *memProvider) Del(id string) {
 	delete(this.st, id)
 }
 
-func (this *memProvider) Save(id string) error {
+func (this *memProvider) Save(id string, session *Session) error {
 	return nil
 }
 
