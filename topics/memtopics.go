@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/AnyPresence/surgemq/message"
+	"github.com/nanoscaleio/surgemq/message"
 )
 
 var (

@@ -24,11 +24,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/AnyPresence/surgemq/auth"
-	"github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/sessions"
-	"github.com/AnyPresence/surgemq/topics"
+	"github.com/nanoscaleio/surgemq/auth"
+	"github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/sessions"
+	"github.com/nanoscaleio/surgemq/topics"
 )
 
 var (
@@ -111,6 +111,8 @@ type Server struct {
 
 	subs []interface{}
 	qoss []byte
+
+	OnExecute ExecuteFunc
 }
 
 type ServerContext struct {
@@ -365,6 +367,10 @@ func (this *Server) handleConnection(c io.Closer) (svc *service, err error) {
 		conn:      conn,
 		sessMgr:   sessMgr,
 		topicsMgr: topicsMgr,
+
+		onexecute: this.OnExecute,
+		context:   context,
+		remote:    conn.RemoteAddr(),
 	}
 
 	err = this.getSession(context, svc, req, resp)

@@ -68,8 +68,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/service"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/service"
 	"github.com/spf13/cobra"
 	"github.com/surge/netx"
 )

@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/topics"
+	"github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/topics"
 	"github.com/stretchr/testify/require"
 )
 

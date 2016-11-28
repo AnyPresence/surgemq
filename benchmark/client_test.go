@@ -21,8 +21,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/service"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/service"
 	"github.com/stretchr/testify/require"
 )
 

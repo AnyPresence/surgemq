@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/AnyPresence/surgemq/log"
+	"github.com/nanoscaleio/surgemq/log"
 	"golang.org/x/net/websocket"
 )
 

@@ -20,7 +20,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/AnyPresence/surgemq/message"
+	"github.com/nanoscaleio/surgemq/message"
 )
 
 func getConnectMessage(conn io.Closer) (*message.ConnectMessage, error) {

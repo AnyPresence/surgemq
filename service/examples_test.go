@@ -14,7 +14,7 @@
 
 package service
 
-import "github.com/AnyPresence/surgemq/message"
+import "github.com/nanoscaleio/surgemq/message"
 
 func ExampleServer() {
 	// Create a new server
