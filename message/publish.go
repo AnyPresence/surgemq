@@ -248,3 +248,7 @@ func (this *PublishMessage) msglen() int {
 
 	return total
 }
+
+func (this *PublishMessage) Length() int {
+	return this.msglen()
+}

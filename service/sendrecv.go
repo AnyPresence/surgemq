@@ -21,8 +21,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/message"
+	"github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/message"
 )
 
 type netReader interface {

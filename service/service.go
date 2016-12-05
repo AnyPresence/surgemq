@@ -17,18 +17,20 @@ package service
 import (
 	"fmt"
 	"io"
+	"net"
 	"sync"
 	"sync/atomic"
 
-	"github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/sessions"
-	"github.com/AnyPresence/surgemq/topics"
+	"github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/sessions"
+	"github.com/nanoscaleio/surgemq/topics"
 )
 
 type (
 	OnCompleteFunc func(msg, ack message.Message, err error) error
 	OnPublishFunc  func(msg *message.PublishMessage) error
+	ExecuteFunc    func(context fmt.Stringer, msg *message.PublishMessage, remote net.Addr, onpub OnPublishFunc) error
 )
 
 type stat struct {
@@ -111,6 +113,10 @@ type service struct {
 	// should be published to the client on the other end of this connection. So we
 	// will call publish() to send the message.
 	onpub OnPublishFunc
+
+	onexecute ExecuteFunc
+	context   fmt.Stringer
+	remote    net.Addr
 
 	inStat  stat
 	outStat stat

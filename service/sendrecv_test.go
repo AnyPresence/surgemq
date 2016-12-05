@@ -19,7 +19,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/AnyPresence/surgemq/message"
+	"github.com/nanoscaleio/surgemq/message"
 	"github.com/stretchr/testify/require"
 )
 

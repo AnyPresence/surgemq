@@ -20,9 +20,9 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/message"
-	"github.com/AnyPresence/surgemq/sessions"
+	"github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/message"
+	"github.com/nanoscaleio/surgemq/sessions"
 )
 
 var (
@@ -364,6 +364,11 @@ func (this *service) processUnsubscribe(msg *message.UnsubscribeMessage) error {
 // the ack cycle. This method will get the list of subscribers based on the publish
 // topic, and publishes the message to the list of subscribers.
 func (this *service) onPublish(msg *message.PublishMessage) error {
+	if this.onexecute != nil {
+		msg.SetRetain(false)
+		return this.onexecute(this.context, msg, this.remote, this.onpub)
+	}
+
 	if msg.Retain() {
 		if err := this.topicsMgr.Retain(msg); err != nil {
 			log.Errorf("(%s) Error retaining message: %v", this.cid(), err)

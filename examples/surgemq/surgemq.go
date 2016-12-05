@@ -21,8 +21,8 @@ import (
 	"os/signal"
 	"runtime/pprof"
 
-	slog "github.com/AnyPresence/surgemq/log"
-	"github.com/AnyPresence/surgemq/service"
+	slog "github.com/nanoscaleio/surgemq/log"
+	"github.com/nanoscaleio/surgemq/service"
 )
 
 var (
